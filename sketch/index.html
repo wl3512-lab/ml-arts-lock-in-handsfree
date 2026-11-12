@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>lock in, hands-free · Lucy Liu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.11.10/lib/p5.min.js"></script>
+  <script src="https://unpkg.com/ml5@1.4.0/dist/ml5.min.js"></script>
+  <style>
+    :root{--bg:#0b0e22;--panel:#151a3acc;--line:#ffffff26;--ink:#eef1ff;--soft:#b9c0e6;--focus:#9fd3ff;--mint:#a6f0cf;--wait:#c9b8ff;--gold:#ffd98a}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,sans-serif;overflow:hidden}
+    main canvas{display:block;position:fixed;inset:0;z-index:0}
+    #panel{position:fixed;left:20px;top:20px;z-index:1;width:340px;max-height:calc(100vh - 40px);overflow:auto;padding:16px 18px;background:var(--panel);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(14px)}
+    h1,h2,.eyebrow{font-family:"Silkscreen",ui-monospace,monospace;font-weight:400}
+    .eyebrow{font-size:11px;letter-spacing:1px;color:var(--soft)}
+    h1{font-size:28px;line-height:1.05;margin:4px 0 8px;color:var(--focus)}
+    h2{font-size:12px;letter-spacing:.5px;color:var(--wait);margin:16px 0 6px}
+    p{margin:6px 0;color:var(--soft)}
+    .small{font-size:12px}
+    input,select{font:inherit;width:100%;padding:7px 9px;border-radius:7px;border:1px solid var(--line);background:#ffffff10;color:var(--ink)}
+    .row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+    button{font:inherit;cursor:pointer;border:1px solid #ffffff40;border-radius:7px;padding:7px 11px;color:inherit;background:#ffffff12}
+    button:hover{background:#ffffff26}
+    button.primary{background:var(--focus);color:#0b0e22;border-color:var(--focus)}
+    #log{font:12px/1.6 ui-monospace,monospace;color:var(--soft);white-space:pre-wrap;min-height:4em}
+    #status{color:var(--ink)}
+    kbd{font:11px ui-monospace,monospace;border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+    @media(max-width:700px){#panel{left:10px;right:10px;width:auto;top:auto;bottom:10px;max-height:45vh}}
+  </style>
+</head>
+<body>
+<main></main>
+<aside id="panel">
+  <div class="eyebrow">ML Arts final · code sketch</div>
+  <h1>lock in, hands-free</h1>
+  <p>Sit down and focus starts. Walk away and it pauses. Pick up your phone and the ring dims. No buttons.</p>
+
+  <h2>1 · your model</h2>
+  <p class="small">Train 3 image classes in <a href="https://teachablemachine.withgoogle.com/train/image" target="_blank" rel="noopener" style="color:var(--focus)">Teachable Machine</a> at your desk: <b>working</b>, <b>phone</b>, <b>away</b>. Export → upload → paste the link.</p>
+  <input id="modelUrl" placeholder="https://teachablemachine.withgoogle.com/models/…/">
+  <div class="row"><button class="primary" id="load">Load model</button><button id="demo">Demo without a model</button></div>
+  <p class="small" id="status">No model yet. Demo mode: keys <kbd>1</kbd> working, <kbd>2</kbd> phone, <kbd>3</kbd> away.</p>
+
+  <h2>2 · focus length</h2>
+  <select id="len"><option value="60">1 min (demo)</option><option value="1500" selected>25 min</option><option value="3000">50 min</option></select>
+
+  <h2>3 · when it's wrong</h2>
+  <div class="row"><button id="cancel">Cancel start</button><button id="undo">I was here (undo pause)</button></div>
+
+  <h2>what happened</h2>
+  <div id="log"></div>
+  <p class="small">Camera frames never leave this page and are never saved.</p>
+</aside>
+<script src="handsfree-logic.js"></script>
+<script src="sketch.js"></script>
+</body>
+</html>

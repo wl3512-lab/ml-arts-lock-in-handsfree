@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>lock in, hands-free · slides</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0b0e22;--ink:#eef1ff;--soft:#b9c0e6;--focus:#9fd3ff;--mint:#a6f0cf;--wait:#c9b8ff;--gold:#ffd98a;--line:#ffffff22}
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:clamp(16px,2.1vw,26px)/1.45 system-ui,sans-serif;overflow:hidden}
+    body{background:radial-gradient(60% 70% at 70% 50%,#1d2a5a 0%,var(--bg) 70%)}
+    .slide{position:absolute;inset:0;padding:6vh 7vw;display:none;flex-direction:column;justify-content:center}
+    .slide.on{display:flex}
+    h1,h2,.eye{font-family:"Silkscreen",ui-monospace,monospace;font-weight:400;margin:0}
+    h1{font-size:clamp(40px,7vw,96px);line-height:1;color:var(--focus);margin-bottom:.4em}
+    h2{font-size:clamp(26px,3.6vw,52px);line-height:1.1;color:var(--focus);margin-bottom:.6em}
+    .eye{font-size:.6em;letter-spacing:.08em;color:var(--wait);margin-bottom:1.2em}
+    p{margin:0 0 .7em;max-width:30em;color:var(--soft)}
+    b{color:var(--ink)}
+    .big{font-size:1.35em;color:var(--ink);max-width:24em}
+    ul{margin:0;padding-left:1.1em;max-width:32em;color:var(--soft)}
+    li{margin-bottom:.5em}
+    .row{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2vw;margin-top:.4em}
+    .card{border:1px solid var(--line);border-radius:14px;padding:1em;background:#ffffff08}
+    .card .k{font-family:"Silkscreen",monospace;color:var(--mint);font-size:.75em;margin-bottom:.4em}
+    .card p{margin:0;font-size:.85em}
+    img{width:100%;border-radius:10px;border:1px solid var(--line)}
+    .rule{font-family:"Silkscreen",monospace;color:var(--gold);font-size:clamp(22px,3vw,44px);line-height:1.25;max-width:20em}
+    .foot{position:fixed;bottom:2.5vh;right:3vw;font:12px ui-monospace,monospace;color:#ffffff66}
+    a{color:var(--focus)}
+  </style>
+</head>
+<body>
+
+<section class="slide on">
+  <div class="eye">ML Arts final proposal · Lucy Liu</div>
+  <h1>lock in,<br>hands-free</h1>
+  <p class="big">My study timer starts when I sit down, pauses when I walk away, and dims when I pick up my phone.</p>
+</section>
+
+<section class="slide">
+  <div class="eye">what I have</div>
+  <h2>lock in: the timer I use every day</h2>
+  <p>A menu bar study timer: focus and break rounds, themes, background sounds, share codes so friends study on the same clock. Started from Braxton Hauw's web timer.</p>
+  <p class="big">It works. But it only knows what I tell it.</p>
+</section>
+
+<section class="slide">
+  <div class="eye">the problem</div>
+  <h2>Three things I have to remember</h2>
+  <div class="row">
+    <div class="card"><div class="k">press start</div><p>Starting is the hardest part of studying. The button is one more thing between me and starting.</p></div>
+    <div class="card"><div class="k">press pause</div><p>I forget when I get up, so "50 min of focus" includes the kitchen.</p></div>
+    <div class="card"><div class="k">put the phone down</div><p>The timer has no idea I've been scrolling for ten minutes.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="eye">the rule</div>
+  <p class="rule">The machine learning may only remove a step. Never add one.</p>
+  <p>No typing what I'm studying. No rating sessions. No new screens.</p>
+</section>
+
+<section class="slide">
+  <div class="eye">what it does</div>
+  <div class="row">
+    <div><img src="../media/state-focus.png" alt="Focus started by itself"><p><b>Sit down</b> · 5 s, then "starting…" you can cancel</p></div>
+    <div><img src="../media/state-paused.png" alt="Paused because I walked away"><p><b>Walk away</b> · 10 s, pauses and takes those seconds back</p></div>
+    <div><img src="../media/state-phone.png" alt="Ring dimmed because of phone"><p><b>Phone</b> · 20 s, ring dims quietly, never pauses</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="eye">the ML</div>
+  <h2>A model trained on my own desk</h2>
+  <ul>
+    <li><b>Teachable Machine</b> (week 2): 3 classes, working / phone / away, about 50 photos each.</li>
+    <li><b>Why not pretrained?</b> bodyPose sees "a person" whether I'm working or scrolling. It knows away vs here, not phone vs work.</li>
+    <li><b>The test:</b> run both side by side for a day and count mistakes. That's my answer to "train your own vs pretrained", with my own numbers.</li>
+    <li>Ignore anything under 70% confidence. A label has to hold for a few seconds before anything happens.</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <div class="eye">designing for when it's wrong</div>
+  <div class="row">
+    <div class="card"><div class="k">wrong pause</div><p>One tap, "I was here": it resumes and gives every second back. Each fix gets counted.</p></div>
+    <div class="card"><div class="k">shared sessions</div><p>Pausing changes the share code today, so in a shared session it only tracks my away time.</p></div>
+    <div class="card"><div class="k">camera trust</div><p>Off by default. A small eye when it's on. Frames are never saved or sent anywhere.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="eye">audience + plan</div>
+  <h2>Me first, then 3 friends</h2>
+  <ul>
+    <li><b>11/13–11/20</b> · train on my desk, day and night, compare against bodyPose</li>
+    <li><b>11/20–11/27</b> · build it into the lock in web timer, keep share codes working</li>
+    <li><b>11/27–12/4</b> · 3 friends use it, tune timings from what they fix by hand</li>
+  </ul>
+  <p style="margin-top:1em">Code sketch already runs: <a href="../sketch/">sketch/</a> (demo keys 1 · 2 · 3)</p>
+</section>
+
+<section class="slide">
+  <div class="eye">feedback I'd love</div>
+  <h2>Questions for you</h2>
+  <ul>
+    <li>Would a camera on your desk feel like help or like being watched? What would change that?</li>
+    <li>Is 10 seconds the right wait before it pauses?</li>
+    <li>Any examples of ML that removes a step instead of adding one?</li>
+  </ul>
+</section>
+
+<div class="foot"><span id="n">1</span> / <span id="t"></span> · ← →</div>
+<script>
+  const s=[...document.querySelectorAll('.slide')];let i=0;
+  document.getElementById('t').textContent=s.length;
+  function go(n){s[i].classList.remove('on');i=Math.max(0,Math.min(s.length-1,n));s[i].classList.add('on');document.getElementById('n').textContent=i+1;}
+  addEventListener('keydown',e=>{if(['ArrowRight',' ','PageDown'].includes(e.key))go(i+1);if(['ArrowLeft','PageUp'].includes(e.key))go(i-1);});
+  addEventListener('click',e=>{if(e.target.closest('a'))return;go(e.clientX>innerWidth/2?i+1:i-1);});
+</script>
+</body>
+</html>
