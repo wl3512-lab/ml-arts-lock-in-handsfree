@@ -28,6 +28,8 @@
     button.primary{background:var(--focus);color:#0b0e22;border-color:var(--focus)}
     #log{font:12px/1.6 ui-monospace,monospace;color:var(--soft);white-space:pre-wrap;min-height:4em}
     #status{color:var(--ink)}
+    .check{display:flex;gap:8px;align-items:flex-start;margin:6px 0 0;cursor:pointer}
+    .check input{margin-top:3px;flex:none;width:auto}
     kbd{font:11px ui-monospace,monospace;border:1px solid var(--line);border-radius:4px;padding:1px 5px}
     @media(max-width:700px){#panel{left:10px;right:10px;width:auto;top:auto;bottom:10px;max-height:45vh}}
   </style>
@@ -45,6 +47,8 @@
   <div class="row"><button class="primary" id="load">Load model</button><button id="demo">Demo without a model</button></div>
   <p class="small" id="status">No model yet. Demo mode: keys <kbd>1</kbd> working, <kbd>2</kbd> phone, <kbd>3</kbd> away.</p>
 
+  <label class="small check"><input type="checkbox" id="presence" checked><span> presence check (pretrained bodyPose decides if anyone is here, so a new room can't read as "phone")</span></label>
+
   <h2>2 · focus length</h2>
   <select id="len"><option value="60">1 min (demo)</option><option value="1500" selected>25 min</option><option value="3000">50 min</option></select>
 
@@ -55,7 +59,7 @@
   <div id="log"></div>
   <p class="small">Camera frames never leave this page and are never saved.</p>
 </aside>
-<script src="handsfree-logic.js?v=2"></script>
-<script src="sketch.js?v=2"></script>
+<script src="handsfree-logic.js?v=3"></script>
+<script src="sketch.js?v=3"></script>
 </body>
 </html>

@@ -3,7 +3,14 @@
 // handsfree-logic.js turns its guesses into start / pause / dim.
 // Based on the class example "Image Classification with Teachable Machine and ml5.js".
 
-let video, classifier, hf;
+let video, classifier, bodyPose, hf;
+// Presence check: a pretrained bodyPose (MoveNet) decides "is anyone here?",
+// which works in any room. The desk model only decides working vs phone.
+// Without it, an empty room the desk model never saw can read as "phone 100%".
+let presenceCheck = true;
+let tmGuess = null;            // last desk-model result
+let person = { here: false, score: 0, seen: false };
+const PERSON_MIN = 0.3;        // mean confidence of nose, eyes, shoulders
 let mode = 'demo';            // 'demo' (keys) or 'model'
 let guess = { label: 'away', confidence: 1, raw: 'away' };
 let snap;
@@ -27,7 +34,34 @@ function setup() {
   select('#len').changed(reset);
   select('#cancel').mousePressed(() => { snap = hf.cancelStart(now()); });
   select('#undo').mousePressed(() => { snap = hf.undoPause(now()); });
+  select('#presence').changed(() => { presenceCheck = select('#presence').elt.checked; combine(); });
+  bodyPose = ml5.bodyPose('MoveNet', { flipped: true }, () => bodyPose.detectStart(video, gotPoses));
   loadDeskModel();
+}
+
+function gotPoses(poses) {
+  const names = ['nose', 'left_eye', 'right_eye', 'left_shoulder', 'right_shoulder'];
+  let best = 0;
+  for (const p of poses || []) {
+    const ks = p.keypoints.filter(k => names.includes(k.name));
+    const mean = ks.reduce((a, k) => a + (k.confidence ?? k.score ?? 0), 0) / (ks.length || 1);
+    best = max(best, mean);
+  }
+  person = { here: best >= PERSON_MIN, score: best, seen: true };
+  combine();
+}
+
+// Merge the two models into one guess for handsfree-logic.js.
+function combine() {
+  if (mode !== 'model' || !tmGuess) return;
+  if (presenceCheck && person.seen && !person.here) {
+    guess = { raw: tmGuess.raw, label: 'away', confidence: 1 - person.score, by: 'bodyPose' };
+  } else if (presenceCheck && person.seen && tmGuess.label === 'away') {
+    // someone is clearly in frame, so "away" is the desk model being unsure: call it working
+    guess = { raw: tmGuess.raw, label: 'working', confidence: person.score, by: 'bodyPose' };
+  } else {
+    guess = { ...tmGuess, by: 'desk model' };
+  }
 }
 
 function reset() {
@@ -53,7 +87,8 @@ function loadDeskModel() {
 function gotResult(results) {
   if (!results || !results.length) return;
   const top = results[0];
-  guess = { raw: top.label, label: HandsFree.normalizeLabel(top.label), confidence: top.confidence };
+  tmGuess = { raw: top.label, label: HandsFree.normalizeLabel(top.label), confidence: top.confidence };
+  combine();
 }
 
 function keyPressed() {
@@ -127,7 +162,12 @@ function drawCamera() {
   textAlign(LEFT, TOP);
   textSize(12);
   const lbl = guess.label || `? (${guess.raw})`;
-  text(`sees: ${lbl}  ${(guess.confidence * 100).toFixed(0)}%`, x, y + h + 8);
+  text(`sees: ${lbl}  ${(guess.confidence * 100).toFixed(0)}%${guess.by ? '  (' + guess.by + ')' : ''}`, x, y + h + 8);
+  if (mode === 'model') {
+    fill(238, 241, 255, 150);
+    text(`desk model: ${tmGuess ? tmGuess.raw + ' ' + (tmGuess.confidence * 100).toFixed(0) + '%' : '…'}`, x, y + h + 40);
+    text(`bodyPose: ${person.seen ? (person.here ? 'person' : 'nobody') + ' ' + (person.score * 100).toFixed(0) + '%' : 'loading…'}`, x, y + h + 56);
+  }
   fill(255, 255, 255, 30);
   rect(x, y + h + 28, w, 5, 3);
   fill(guess.confidence >= hf.options.minConf ? color(166, 240, 207) : color(255, 160, 160));
