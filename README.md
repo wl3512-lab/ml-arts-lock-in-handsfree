@@ -6,3 +6,4 @@ ML for the Arts final (Lucy Liu, Fall 2026). A study timer that starts when you 
 - `slides/`: proposal slides (arrow keys)
 - `sketch/`: p5.js 1.11.10 + ml5 1.4.0 code sketch; `handsfree-logic.js` holds the rules
 - `tests/`: `node tests/handsfree-logic.test.cjs`
+- `TRAINING.md`: how to train the desk model

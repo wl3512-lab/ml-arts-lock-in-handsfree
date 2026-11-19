@@ -13,4 +13,4 @@ Line to paste on the wiki (CLI pushes to the wiki get 403, so paste it by hand):
 - Lucy Liu - [lock in, hands-free (proposal post)](https://wl3512-lab.github.io/ml-arts-lock-in-handsfree/), [slides](https://wl3512-lab.github.io/ml-arts-lock-in-handsfree/slides/)
 ```
 
-Still for Lucy: train the Teachable Machine model on your desk (working / phone / away) and paste its link into the sketch to try it live.
+Still for Lucy: train the Teachable Machine model on your desk (see TRAINING.md) and paste its link into the sketch to try it live.
