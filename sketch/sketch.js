@@ -20,13 +20,14 @@ function setup() {
   video.hide();
   reset();
 
-  const saved = readSaved();
-  if (saved) select('#modelUrl').value(saved);
-  select('#load').mousePressed(loadModel);
+  // Lucy's desk model ships in sketch/model/, so the page starts watching with no paste.
+  select('#modelUrl').value(readSaved() || 'model/');
+  select('#load').mousePressed(loadDeskModel);
   select('#demo').mousePressed(() => { mode = 'demo'; status('Demo mode: keys 1 working, 2 phone, 3 away.'); });
   select('#len').changed(reset);
   select('#cancel').mousePressed(() => { snap = hf.cancelStart(now()); });
   select('#undo').mousePressed(() => { snap = hf.undoPause(now()); });
+  loadDeskModel();
 }
 
 function reset() {
@@ -34,10 +35,12 @@ function reset() {
   snap = hf.snapshot();
 }
 
-function loadModel() {
+function loadDeskModel() {
   let url = select('#modelUrl').value().trim();
   if (!url) { status('Paste your Teachable Machine model link first.'); return; }
+  if (url.endsWith('model.json')) url = url.slice(0, -'model.json'.length);
   if (!url.endsWith('/')) url += '/';
+  url = new URL(url, location.href).href;
   status('Loading model…');
   try { localStorage.setItem('handsfree-model', url); } catch (e) { /* private window */ }
   classifier = ml5.imageClassifier(url + 'model.json', { flipped: true }, () => {
