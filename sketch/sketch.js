@@ -22,6 +22,12 @@ const COLORS = {
 const PHONE_YELLOW = [255, 214, 90];
 // The lock in menu bar app listens here (PhoneBridge.swift); nothing leaves the Mac.
 const MENUBAR = 'http://127.0.0.1:8779/phone';
+// Watch mode (?watch=1): the lock in menu bar app opens this page when a focus
+// round starts. The app owns the timer; this page only watches for your phone,
+// and the camera is on only while the app is in focus.
+const WATCH = new URLSearchParams(location.search).has('watch');
+let app = { reachable: false, running: false, focus: false, remaining: 0 };
+let cameraOn = true, lastPoll = -10;
 let phoneWas = false, lastBeat = 0;
 let busyTM = false, busyPose = false, poseReady = false, lastUpdate = 0;
 
@@ -43,6 +49,7 @@ function setup() {
   bodyPose = ml5.bodyPose('MoveNet', { flipped: true }, () => { poseReady = true; });
   loadDeskModel();
   startTicker();
+  if (WATCH) document.body.classList.add('watch');
   // ask for notification permission on the first click (browsers need a click)
   document.addEventListener('click', () => {
     if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
@@ -59,6 +66,11 @@ function startTicker() {
 }
 
 function tick() {
+  if (WATCH) {
+    const t0 = now();
+    if (t0 - lastPoll >= 2) { lastPoll = t0; pollApp(); }
+    if (!cameraOn) { phoneSignals(t0); return; }
+  }
   if (video && video.elt && video.elt.paused) video.elt.play().catch(() => {});
   if (mode === 'model' && classifier && !busyTM) {
     busyTM = true;
@@ -73,11 +85,35 @@ function tick() {
   phoneSignals(t);
 }
 
+function pollApp() {
+  fetch('http://127.0.0.1:8779/session', { cache: 'no-store' })
+    .then(r => r.json())
+    .then(j => { app = { reachable: true, running: !!j.running, focus: !!j.focus, remaining: j.remaining || 0 };
+                 if (j.watch === false) app.focus = false; syncCamera(); })
+    .catch(() => { app = { reachable: false, running: false, focus: false, remaining: 0 }; syncCamera(); });
+}
+
+// camera on only while the app is in a focus round
+function syncCamera() {
+  if (app.focus && !cameraOn) {
+    navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } }).then(stream => {
+      video.elt.srcObject = stream; video.elt.play().catch(() => {});
+      cameraOn = true; reset();
+    }).catch(() => {});
+  } else if (!app.focus && cameraOn) {
+    const st = video && video.elt && video.elt.srcObject;
+    if (st) st.getTracks().forEach(tr => tr.stop());
+    cameraOn = false; reset(); snap = hf.snapshot();
+  }
+}
+
 // 20 s of phone in a row: tell the menu bar app (yellow pulsing ring + one
 // notification); if the app isn't running, the browser notifies instead.
 function phoneSignals(t) {
   const on = !!snap.phoneAlert;
-  document.title = on ? '📵 phone down?' : (snap.state === 'focus' ? `${fmt(snap.remaining)} · locked in` : 'lock in, hands-free');
+  document.title = on ? '📵 phone down?'
+    : WATCH ? (cameraOn ? 'lock in · watching' : 'lock in · camera off')
+    : (snap.state === 'focus' ? `${fmt(snap.remaining)} · locked in` : 'lock in, hands-free');
   if (on !== phoneWas || (on && t - lastBeat > 5)) {
     const first = on && !phoneWas;
     phoneWas = on; lastBeat = t;
@@ -120,7 +156,9 @@ function combine() {
 }
 
 function reset() {
-  hf = HandsFree.createHandsFree({ focusLength: Number(select('#len').value()) });
+  hf = WATCH
+    ? HandsFree.createHandsFree({ startHold: 0, startCountdown: 0, focusLength: 99 * 3600 })
+    : HandsFree.createHandsFree({ focusLength: Number(select('#len').value()) });
   snap = hf.snapshot();
 }
 
@@ -169,12 +207,12 @@ function drawSky() {
   const glow = snap.phoneAlert ? 1.6 : 1;
   for (let r = 420; r > 0; r -= 20) {
     fill(c[0], c[1], c[2], (4 + breath * 4) * glow);
-    circle(width / 2 + 120, height / 2, r * 1.6);
+    circle(width / 2 + (WATCH ? 0 : 120), height / 2 + (WATCH ? 80 : 0), r * 1.6);
   }
 }
 
 function drawRing() {
-  const cx = width / 2 + 120, cy = height / 2, d = min(320, height * 0.5);
+  const cx = width / 2 + (WATCH ? 0 : 120), cy = height / 2 + (WATCH ? 80 : 0), d = min(320, height * (WATCH ? 0.45 : 0.5));
   const c = snap.phoneAlert ? PHONE_YELLOW : COLORS[snap.state];
   const a = snap.phoneAlert ? 120 + 135 * pulse() : 255;
   noFill();
@@ -192,7 +230,7 @@ function drawRing() {
   textAlign(CENTER, CENTER);
   textFont('Silkscreen');
   textSize(d * 0.2);
-  text(fmt(snap.remaining), cx, cy - 6);
+  text(fmt(WATCH ? app.remaining : snap.remaining), cx, cy - 6);
   textSize(14);
   fill(c[0], c[1], c[2], a);
   const words = {
@@ -202,11 +240,18 @@ function drawRing() {
     paused: 'paused · you stepped away',
     done: 'done ✦',
   };
-  text(words[snap.state], cx, cy + d * 0.18);
+  let word = words[snap.state];
+  if (WATCH) {
+    if (!app.reachable) word = 'open the lock in app';
+    else if (!cameraOn) word = app.running ? 'break · camera off' : 'no session · camera off';
+    else if (snap.state === 'paused') word = 'you stepped away';
+    else word = snap.phoneAlert ? 'phone down?' : 'watching for your phone';
+  }
+  text(word, cx, cy + d * 0.18);
 }
 
 function drawCamera() {
-  const w = 200, h = 150, x = width - w - 20, y = 20;
+  const w = WATCH ? 160 : 200, h = WATCH ? 120 : 150, x = width - w - 20, y = 20;
   if (mode === 'model') image(video, x, y, w, h);
   else { fill(255, 255, 255, 15); noStroke(); rect(x, y, w, h, 10); }
   fill(238, 241, 255);

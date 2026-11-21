@@ -14,6 +14,7 @@
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,sans-serif;overflow:hidden}
     main canvas{display:block;position:fixed;inset:0;z-index:0}
+    body.watch #panel{display:none}
     #panel{position:fixed;left:20px;top:20px;z-index:1;width:340px;max-height:calc(100vh - 40px);overflow:auto;padding:16px 18px;background:var(--panel);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(14px)}
     h1,h2,.eyebrow{font-family:"Silkscreen",ui-monospace,monospace;font-weight:400}
     .eyebrow{font-size:11px;letter-spacing:1px;color:var(--soft)}
@@ -59,7 +60,7 @@
   <div id="log"></div>
   <p class="small">Camera frames never leave this page and are never saved.</p>
 </aside>
-<script src="handsfree-logic.js?v=5"></script>
-<script src="sketch.js?v=5"></script>
+<script src="handsfree-logic.js?v=6"></script>
+<script src="sketch.js?v=6"></script>
 </body>
 </html>
