@@ -58,6 +58,24 @@ test('phone dims after 20 s, working un-dims', () => {
   assert.equal(s.dimmed, false);
 });
 
+test('a glance up mid-phone does not reset the 20 s', () => {
+  const hf = createHandsFree();
+  run(hf, 'working', 0, 30);
+  run(hf, 'phone', 30.5, 40);
+  run(hf, 'working', 40.5, 41.5);            // 1 s glance at the screen
+  const s = run(hf, 'phone', 42, 51);
+  assert.equal(s.phoneAlert, true);
+});
+
+test('putting the phone down for longer starts the count over', () => {
+  const hf = createHandsFree();
+  run(hf, 'working', 0, 30);
+  run(hf, 'phone', 30.5, 40);
+  run(hf, 'working', 40.5, 45);              // 4.5 s back at work
+  const s = run(hf, 'phone', 45.5, 60);      // only 14.5 s of phone since
+  assert.equal(s.phoneAlert, false);
+});
+
 test('undoing a wrong pause gives every second back', () => {
   const hf = createHandsFree();
   run(hf, 'working', 0, 70);

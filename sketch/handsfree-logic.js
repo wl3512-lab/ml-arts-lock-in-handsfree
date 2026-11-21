@@ -10,7 +10,8 @@
     startCountdown: 5, // cancelable "starting…" before focus begins
     awayHold: 10,      // seconds of "away" before pausing
     backHold: 2,       // seconds of "working" before resuming / un-dimming
-    phoneHold: 20,     // seconds of "phone" before the ring dims
+    phoneHold: 20,     // seconds of "phone" in a row before "phone down?"
+    phoneGrace: 2,     // a blip shorter than this (a glance up) doesn't break the run
     cancelQuiet: 60,   // after you cancel a start, don't auto-start for this long
     focusLength: 25 * 60,
   };
@@ -27,6 +28,8 @@
       startAt: 0,
       pausedAt: 0,
       quietUntil: 0,
+      phoneSince: null, // start of the current phone run
+      lastPhone: -Infinity,
       corrections: 0,   // wrong pauses you undid (future training photos)
       events: [],
     };
@@ -40,6 +43,12 @@
       s.lastT = t;
 
       if (conf >= o.minConf && label !== s.runLabel) { s.runLabel = label; s.runSince = t; }
+      // the phone run: 20 s in a row, forgiving a blip of under 2 s
+      if (conf >= o.minConf) {
+        if (label === 'phone') { if (s.phoneSince === null) s.phoneSince = t; s.lastPhone = t; }
+        else if (s.phoneSince !== null && t - s.lastPhone > o.phoneGrace) s.phoneSince = null;
+      }
+      const phoneHeld = s.phoneSince !== null && t - s.phoneSince >= o.phoneHold;
 
       switch (s.state) {
         case 'waiting':
@@ -56,8 +65,8 @@
             // take back the seconds you were already gone
             s.elapsed = Math.max(0, s.elapsed - o.awayHold);
             s.state = 'paused'; s.pausedAt = t; s.dimmed = false; log(t, 'paused (away)');
-          } else if (!s.dimmed && held('phone', o.phoneHold, t)) {
-            s.dimmed = true; log(t, 'dimmed (phone)');
+          } else if (!s.dimmed && phoneHeld) {
+            s.dimmed = true; log(t, 'phone 20 s · phone down?');
           } else if (s.dimmed && held('working', o.backHold, t)) {
             s.dimmed = false; log(t, 'back');
           }
@@ -87,7 +96,7 @@
 
     function snapshot() {
       return {
-        state: s.state, dimmed: s.dimmed, elapsed: s.elapsed,
+        state: s.state, dimmed: s.dimmed, phoneAlert: s.dimmed, elapsed: s.elapsed,
         remaining: Math.max(0, o.focusLength - s.elapsed),
         countdown: s.state === 'starting' ? Math.max(0, s.startAt - (s.lastT || 0)) : 0,
         label: s.runLabel, corrections: s.corrections, events: s.events.slice(-6),

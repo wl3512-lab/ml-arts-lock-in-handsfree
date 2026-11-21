@@ -19,6 +19,11 @@ const COLORS = {
   waiting: [201, 184, 255], starting: [201, 184, 255], focus: [159, 211, 255],
   paused: [140, 146, 190], done: [255, 217, 138],
 };
+const PHONE_YELLOW = [255, 214, 90];
+// The lock in menu bar app listens here (PhoneBridge.swift); nothing leaves the Mac.
+const MENUBAR = 'http://127.0.0.1:8779/phone';
+let phoneWas = false, lastBeat = 0;
+let busyTM = false, busyPose = false, poseReady = false, lastUpdate = 0;
 
 function setup() {
   createCanvas(windowWidth, windowHeight).parent(document.querySelector('main'));
@@ -35,8 +40,55 @@ function setup() {
   select('#cancel').mousePressed(() => { snap = hf.cancelStart(now()); });
   select('#undo').mousePressed(() => { snap = hf.undoPause(now()); });
   select('#presence').changed(() => { presenceCheck = select('#presence').elt.checked; combine(); });
-  bodyPose = ml5.bodyPose('MoveNet', { flipped: true }, () => bodyPose.detectStart(video, gotPoses));
+  bodyPose = ml5.bodyPose('MoveNet', { flipped: true }, () => { poseReady = true; });
   loadDeskModel();
+  startTicker();
+  // ask for notification permission on the first click (browsers need a click)
+  document.addEventListener('click', () => {
+    if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+  }, { once: true });
+}
+
+// Chrome stops drawing (and ml5's own loops) when this tab isn't on screen.
+// A worker's timer keeps going, so the models and the timer keep running
+// while you're in another tab or app: that's when "phone down?" matters most.
+function startTicker() {
+  const src = 'setInterval(() => postMessage(0), 200);';
+  const worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+  worker.onmessage = tick;
+}
+
+function tick() {
+  if (video && video.elt && video.elt.paused) video.elt.play().catch(() => {});
+  if (mode === 'model' && classifier && !busyTM) {
+    busyTM = true;
+    classifier.classify(video, (r) => { busyTM = false; gotResult(r); });
+  }
+  if (presenceCheck && poseReady && !busyPose) {
+    busyPose = true;
+    bodyPose.detect(video, (r) => { busyPose = false; gotPoses(r); });
+  }
+  const t = now();
+  if (t - lastUpdate >= 0.1 && guess.label) { lastUpdate = t; snap = hf.update(guess.label, guess.confidence, t); }
+  phoneSignals(t);
+}
+
+// 20 s of phone in a row: tell the menu bar app (yellow pulsing ring + one
+// notification); if the app isn't running, the browser notifies instead.
+function phoneSignals(t) {
+  const on = !!snap.phoneAlert;
+  document.title = on ? '📵 phone down?' : (snap.state === 'focus' ? `${fmt(snap.remaining)} · locked in` : 'lock in, hands-free');
+  if (on !== phoneWas || (on && t - lastBeat > 5)) {
+    const first = on && !phoneWas;
+    phoneWas = on; lastBeat = t;
+    fetch(MENUBAR, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: on }) })
+      .catch(() => { if (first) browserNotify(); });
+  }
+}
+
+function browserNotify() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  new Notification('phone down?', { body: "Your phone's been up for 20 seconds. Your focus timer is still going.", tag: 'phone-down' });
 }
 
 function gotPoses(poses) {
@@ -54,7 +106,10 @@ function gotPoses(poses) {
 // Merge the two models into one guess for handsfree-logic.js.
 function combine() {
   if (mode !== 'model' || !tmGuess) return;
-  if (presenceCheck && person.seen && !person.here) {
+  if (tmGuess.label === 'phone' && tmGuess.confidence >= hf.options.minConf) {
+    // a phone held up can hide your face from bodyPose, but a phone means you're here
+    guess = { ...tmGuess, by: 'desk model' };
+  } else if (presenceCheck && person.seen && !person.here) {
     guess = { raw: tmGuess.raw, label: 'away', confidence: 1 - person.score, by: 'bodyPose' };
   } else if (presenceCheck && person.seen && tmGuess.label === 'away') {
     // someone is clearly in frame, so "away" is the desk model being unsure: call it working
@@ -80,7 +135,6 @@ function loadDeskModel() {
   classifier = ml5.imageClassifier(url + 'model.json', { flipped: true }, () => {
     mode = 'model';
     status('Model loaded. It is watching your desk.');
-    classifier.classifyStart(video, gotResult);
   });
 }
 
@@ -98,9 +152,7 @@ function keyPressed() {
 }
 
 function draw() {
-  // feed the logic ~10 times a second
-  if (frameCount % 6 === 0 && guess.label) snap = hf.update(guess.label, guess.confidence, now());
-
+  // the logic is fed by tick() (it keeps running in the background)
   drawSky();
   drawRing();
   drawCamera();
@@ -111,10 +163,10 @@ function draw() {
 function drawSky() {
   background(11, 14, 34);
   noStroke();
-  const c = COLORS[snap.state];
-  // the aura breathes every 6 s, like lock in
-  const breath = 0.5 + 0.5 * sin((millis() / 6000) * TWO_PI);
-  const glow = snap.dimmed ? 0.25 : 1;
+  const c = snap.phoneAlert ? PHONE_YELLOW : COLORS[snap.state];
+  // the aura breathes every 6 s, like lock in; on "phone down?" it pulses fast
+  const breath = snap.phoneAlert ? pulse() : 0.5 + 0.5 * sin((millis() / 6000) * TWO_PI);
+  const glow = snap.phoneAlert ? 1.6 : 1;
   for (let r = 420; r > 0; r -= 20) {
     fill(c[0], c[1], c[2], (4 + breath * 4) * glow);
     circle(width / 2 + 120, height / 2, r * 1.6);
@@ -123,10 +175,10 @@ function drawSky() {
 
 function drawRing() {
   const cx = width / 2 + 120, cy = height / 2, d = min(320, height * 0.5);
-  const c = COLORS[snap.state];
-  const a = snap.dimmed ? 90 : 255;
+  const c = snap.phoneAlert ? PHONE_YELLOW : COLORS[snap.state];
+  const a = snap.phoneAlert ? 120 + 135 * pulse() : 255;
   noFill();
-  strokeWeight(14);
+  strokeWeight(snap.phoneAlert ? 14 + 6 * pulse() : 14);
   stroke(255, 255, 255, 25);
   circle(cx, cy, d);
   const total = hf.options.focusLength;
@@ -174,6 +226,7 @@ function drawCamera() {
   rect(x, y + h + 28, w * guess.confidence, 5, 3);
 }
 
+function pulse() { return 0.5 + 0.5 * sin((millis() / 1100) * TWO_PI); }
 function status(msg) { select('#status').html(msg); }
 function now() { return millis() / 1000; }
 function fmt(sec) { sec = max(0, round(sec)); return `${floor(sec / 60)}:${nf(sec % 60, 2)}`; }
