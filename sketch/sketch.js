@@ -11,6 +11,8 @@ let presenceCheck = true;
 let tmGuess = null;            // last desk-model result
 let person = { here: false, score: 0, seen: false };
 const PERSON_MIN = 0.3;        // mean confidence of nose, eyes, shoulders
+const PERSON_WINDOW = 1.5;     // seconds of misses before bodyPose says nobody
+const poseHist = [];
 let mode = 'demo';            // 'demo' (keys) or 'model'
 let guess = { label: 'away', confidence: 1, raw: 'away' };
 let snap;
@@ -135,7 +137,13 @@ function gotPoses(poses) {
     const mean = ks.reduce((a, k) => a + (k.confidence ?? k.score ?? 0), 0) / (ks.length || 1);
     best = max(best, mean);
   }
-  person = { here: best >= PERSON_MIN, score: best, seen: true };
+  // bodyPose sometimes misses you for a single frame (no body found at all),
+  // so "nobody here" needs ~1.5 s of misses: use the best score in that window.
+  const t = now();
+  poseHist.push({ t, score: best });
+  while (poseHist.length && t - poseHist[0].t > PERSON_WINDOW) poseHist.shift();
+  const recent = Math.max(...poseHist.map(p => p.score));
+  person = { here: recent >= PERSON_MIN, score: recent, seen: true };
   combine();
 }
 
