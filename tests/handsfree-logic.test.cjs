@@ -55,7 +55,27 @@ test('phone dims after 20 s, working un-dims', () => {
   assert.equal(s.dimmed, true);
   assert.equal(s.state, 'focus', 'phone never pauses');
   s = run(hf, 'working', 51.5, 54);
-  assert.equal(s.dimmed, false);
+  assert.equal(s.dimmed, true, 'a few seconds of working is not enough');
+  s = run(hf, 'working', 54.5, 58);
+  assert.equal(s.dimmed, false, '6 s with no phone clears it');
+});
+
+test('"phone down?" survives the model briefly reading working (Lucy 11/20)', () => {
+  const hf = createHandsFree();
+  run(hf, 'working', 0, 30);
+  run(hf, 'phone', 30.5, 52);                // alert on
+  run(hf, 'working', 52.5, 55.5);            // 3 s misread while still on the phone
+  const s = run(hf, 'phone', 56, 60);
+  assert.equal(s.phoneAlert, true);
+});
+
+test('a 3 s misread before the alert does not restart the 20 s', () => {
+  const hf = createHandsFree();
+  run(hf, 'working', 0, 30);
+  run(hf, 'phone', 30.5, 40);
+  run(hf, 'working', 40.5, 43.5);
+  const s = run(hf, 'phone', 44, 51);
+  assert.equal(s.phoneAlert, true);
 });
 
 test('a glance up mid-phone does not reset the 20 s', () => {
@@ -71,8 +91,8 @@ test('putting the phone down for longer starts the count over', () => {
   const hf = createHandsFree();
   run(hf, 'working', 0, 30);
   run(hf, 'phone', 30.5, 40);
-  run(hf, 'working', 40.5, 45);              // 4.5 s back at work
-  const s = run(hf, 'phone', 45.5, 60);      // only 14.5 s of phone since
+  run(hf, 'working', 40.5, 46);              // 5.5 s back at work
+  const s = run(hf, 'phone', 46.5, 60);      // only 13.5 s of phone since
   assert.equal(s.phoneAlert, false);
 });
 

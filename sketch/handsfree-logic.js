@@ -11,7 +11,8 @@
     awayHold: 10,      // seconds of "away" before pausing
     backHold: 2,       // seconds of "working" before resuming / un-dimming
     phoneHold: 20,     // seconds of "phone" in a row before "phone down?"
-    phoneGrace: 2,     // a blip shorter than this (a glance up) doesn't break the run
+    phoneGrace: 4,     // the model reading "working" for less than this mid-phone doesn't break the run
+    phoneClear: 6,     // "phone down?" clears only after this long with no phone seen at all
     cancelQuiet: 60,   // after you cancel a start, don't auto-start for this long
     focusLength: 25 * 60,
   };
@@ -67,7 +68,7 @@
             s.state = 'paused'; s.pausedAt = t; s.dimmed = false; log(t, 'paused (away)');
           } else if (!s.dimmed && phoneHeld) {
             s.dimmed = true; log(t, 'phone 20 s · phone down?');
-          } else if (s.dimmed && held('working', o.backHold, t)) {
+          } else if (s.dimmed && t - s.lastPhone >= o.phoneClear) {
             s.dimmed = false; log(t, 'back');
           }
           if (s.elapsed >= o.focusLength) { s.elapsed = o.focusLength; s.state = 'done'; log(t, 'focus done'); }
