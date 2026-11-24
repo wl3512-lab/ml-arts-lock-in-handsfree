@@ -30,6 +30,10 @@ const MENUBAR = 'http://127.0.0.1:8779/phone';
 const WATCH = new URLSearchParams(location.search).has('watch');
 let app = { reachable: false, running: false, focus: false, remaining: 0 };
 let cameraOn = true, lastPoll = -10;
+// ?trace=1: a test log, one line every 0.5 s, sent to the lock in app
+// (127.0.0.1:8779/trace → ~/Library/Application Support/StudyTimerBar/sketch-trace.jsonl)
+const TRACE = new URLSearchParams(location.search).has('trace');
+let lastTrace = 0, traceBuf = [], lastEventCount = 0;
 let phoneWas = false, lastBeat = 0;
 let busyTM = false, busyPose = false, poseReady = false, lastUpdate = 0;
 
@@ -85,6 +89,24 @@ function tick() {
   const t = now();
   if (t - lastUpdate >= 0.1 && guess.label) { lastUpdate = t; snap = hf.update(guess.label, guess.confidence, t); }
   phoneSignals(t);
+  if (TRACE) traceTick(t);
+}
+
+function traceTick(t) {
+  if (t - lastTrace < 0.5) return;
+  lastTrace = t;
+  const ev = snap.events.length ? snap.events[snap.events.length - 1] : null;
+  traceBuf.push(JSON.stringify({
+    t: Math.round(t * 10) / 10, clock: new Date().toLocaleTimeString(),
+    tm: tmGuess ? `${tmGuess.raw} ${Math.round(tmGuess.confidence * 100)}` : null,
+    pose: Math.round(person.score * 100), here: person.here,
+    sees: `${guess.label} ${Math.round(guess.confidence * 100)} ${guess.by || ''}`.trim(),
+    state: snap.state, phone: !!snap.phoneAlert, last: ev ? `${fmt(ev.t)} ${ev.msg}` : null,
+  }));
+  if (traceBuf.length >= 2) {
+    fetch('http://127.0.0.1:8779/trace', { method: 'POST', body: traceBuf.join('\n') }).catch(() => {});
+    traceBuf = [];
+  }
 }
 
 function pollApp() {
