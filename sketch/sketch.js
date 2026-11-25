@@ -34,6 +34,13 @@ let cameraOn = true, lastPoll = -10;
 // (127.0.0.1:8779/trace → ~/Library/Application Support/StudyTimerBar/sketch-trace.jsonl)
 const TRACE = new URLSearchParams(location.search).has('trace');
 let lastTrace = 0, traceBuf = [], lastEventCount = 0;
+// ?collect=working (or phone / away): while you study, save a mirrored 224×224
+// webcam photo every 3 s via the lock in app to ~/Pictures/lock in training/<label>/,
+// ready to upload into that Teachable Machine class.
+const COLLECT = new URLSearchParams(location.search).get('collect');
+let lastShot = 0, shots = 0;
+const shotCanvas = document.createElement('canvas');
+shotCanvas.width = shotCanvas.height = 224;
 let phoneWas = false, lastBeat = 0;
 let busyTM = false, busyPose = false, poseReady = false, lastUpdate = 0;
 
@@ -90,6 +97,20 @@ function tick() {
   if (t - lastUpdate >= 0.1 && guess.label) { lastUpdate = t; snap = hf.update(guess.label, guess.confidence, t); }
   phoneSignals(t);
   if (TRACE) traceTick(t);
+  if (COLLECT) collectTick(t);
+}
+
+function collectTick(t) {
+  if (t - lastShot < 3 || !video || !video.elt.videoWidth) return;
+  lastShot = t;
+  const v = video.elt, side = Math.min(v.videoWidth, v.videoHeight);
+  const g = shotCanvas.getContext('2d');
+  g.save(); g.translate(224, 0); g.scale(-1, 1);   // mirrored, like the model sees it
+  g.drawImage(v, (v.videoWidth - side) / 2, (v.videoHeight - side) / 2, side, side, 0, 0, 224, 224);
+  g.restore();
+  fetch(`http://127.0.0.1:8779/frame?label=${encodeURIComponent(COLLECT)}`, { method: 'POST', body: shotCanvas.toDataURL('image/jpeg', 0.9) })
+    .then(() => { shots++; status(`Collecting "${COLLECT}" photos: ${shots} saved to Pictures/lock in training/${COLLECT}`); })
+    .catch(() => status('Collect mode needs the lock in app open.'));
 }
 
 function traceTick(t) {
