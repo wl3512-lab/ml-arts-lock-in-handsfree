@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Lucy Liu's ML Arts final: a study timer that starts, pauses and catches the phone on its own, using a Teachable Machine model trained on her own desk.">
+  <title>lock in, hands-free · Lucy Liu · ML Arts final</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#f6f7ff;--ink:#161a33;--muted:#5b6188;--line:#dde0f3;--accent:#3d5bd9;--chip:#e8ebff;--code:#e8ebff}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 system-ui,sans-serif}
+    main{max-width:1000px;margin:auto;padding:56px 28px 80px}
+    .meta{font:12px/1.7 "Silkscreen",ui-monospace,monospace;letter-spacing:.04em;color:var(--muted)}
+    h1{font-family:"Silkscreen",ui-monospace,monospace;font-weight:400;font-size:clamp(40px,7.5vw,78px);line-height:1;letter-spacing:-.02em;margin:26px 0 22px;color:var(--accent)}
+    h2{font-size:26px;letter-spacing:-.03em;line-height:1.25;margin:0 0 18px}
+    p,ul{max-width:690px;margin:0 0 20px}
+    li{margin-bottom:6px}
+    .lead{font-size:22px;line-height:1.45;max-width:740px}
+    a{color:var(--accent);text-underline-offset:4px}
+    .actions{display:flex;flex-wrap:wrap;gap:12px;margin:28px 0 36px}
+    .button{display:inline-block;padding:11px 18px;border:1px solid var(--accent);border-radius:6px;text-decoration:none}
+    .button.primary{background:var(--accent);color:#fff}
+    figure{margin:0 0 22px}
+    img{display:block;max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line)}
+    figcaption{font-size:13px;color:var(--muted);line-height:1.6;margin-top:10px;max-width:760px}
+    .trio{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .section{border-top:1px solid var(--line);padding-top:34px;margin-top:44px;display:grid;grid-template-columns:185px 1fr;gap:30px}
+    .section .content{min-width:0}
+    .pipeline{font:14px/1.8 ui-monospace,monospace;padding:16px 18px;background:var(--chip);border-radius:6px;margin:22px 0}
+    table{border-collapse:collapse;width:100%;font-size:15px;margin:18px 0 26px}
+    td,th{text-align:left;padding:9px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+    th{font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+    code{font-size:.86em;background:var(--code);padding:2px 5px;border-radius:3px}
+    blockquote{margin:0 0 20px;padding-left:16px;border-left:3px solid #9fb0f5;max-width:690px}
+    footer{border-top:1px solid var(--line);margin-top:50px;padding-top:22px;font-size:13px;color:var(--muted)}
+    @media(max-width:650px){main{padding:32px 16px 55px}.section{grid-template-columns:1fr;gap:8px}.lead{font-size:19px}.trio{grid-template-columns:1fr}table{font-size:14px}}
+   .draft{background:#fff7d6;border:1px solid #f0d77a;border-radius:6px;padding:12px 16px;font-size:15px;margin:0 0 26px;max-width:740px}
+ .tofill{background:#fff7d6;border-left:3px solid #e0b93a;padding:10px 14px;border-radius:4px;font-size:15px;max-width:690px;margin:0 0 20px}
+ .tofill b{color:#8a6500}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="meta">Lucy Liu · Intro to Machine Learning for the Arts<br>Final project documentation · December 2026</div>
+    <h1>lock in, hands-free</h1>
+    <p class="lead">My study timer starts when I sit down, pauses when I walk away, and pulses yellow when I've been on my phone for 20 seconds, using a Teachable Machine model I trained on myself studying.</p>
+    <p class="draft"><b>Draft, 11/26.</b> Sections marked "to fill" wait on model 4's results, play testing (12/4) and the final presentation (12/11). Everything else describes what already runs.</p>
+    <div class="actions">
+      <a class="button primary" href="../sketch/">Open the sketch</a>
+      <a class="button" href="../sketch/compare/">Model compare page</a>
+      <a class="button" href="https://github.com/wl3512-lab/ml-arts-lock-in-handsfree">Source code</a>
+      <a class="button" href="../">Proposal</a>
+    </div>
+    <div class="trio">
+      <figure><img src="../media/state-focus.png" alt="The sketch in focus: a light blue ring at 24:58 labelled locked in." width="1280" height="577"></figure>
+      <figure><img src="../media/state-paused.png" alt="The sketch paused: a grey ring at 24:52 labelled paused, you stepped away." width="1280" height="577"></figure>
+      <figure><img src="../media/state-phone.png" alt="The sketch on the phone: the ring labelled phone down?" width="1280" height="577"></figure>
+    </div>
+    <p class="small" style="font-size:13px;color:var(--muted)">Left: I sat down and focus started by itself. Middle: I walked away for 10 seconds and it paused. Right: I held my phone for 20 seconds. (Proposal screenshots in demo mode; the phone state now pulses yellow.)</p>
+  </header>
+
+  <section class="section">
+    <h2>Summary</h2>
+    <div class="content">
+      <p><b>lock in</b> is a study timer I use every day: a Mac menu bar app with focus and break rounds, themes, sounds and share codes, built from my friend Braxton Hauw's web timer. It only knows what I tell it, and the three things I have to tell it are exactly the ones I forget: press start, press pause when I get up, and put my phone down.</p>
+      <p>For this final I gave it a camera and one rule: <b>the machine learning may only remove a step, never add one.</b> No forms, no task picker, no ratings. A Teachable Machine image model, trained on photos of me studying, tells working from holding my phone. A pretrained pose model (ml5 bodyPose, MoveNet) tells whether anyone is in the chair at all. Small rules on top turn those guesses into timer actions. Sit down and work for 5 seconds and a cancelable "starting in 5…" begins focus. Leave for 10 seconds and it pauses and takes those seconds back. Hold your phone for 20 seconds and the ring turns yellow and pulses, with one notification. It never pauses for the phone.</p>
+      <p>Most of the work turned out to be about what happens when the model is wrong, and I found the wrong moments by recording myself studying. An empty room read as "phone 100%". The model read "working" for two seconds in the middle of scrolling and cleared the phone alert. bodyPose lost me for single frames and kept restarting the start countdown. Each recording turned into a rule, a retrained model or a test. I trained four models in different places and outfits, and built a compare page that runs every model on the same photos and counts its confident mistakes.</p>
+      <p>Two of the biggest fixes weren't about training at all. ml5 was handing my model a squashed, un-mirrored picture instead of the mirrored square Teachable Machine trained on. And ml5 stopped guessing whenever the tab was in the background, which is exactly when the phone alert matters. My answer to the week 8 question, train your own or use pretrained, is both: pretrained for "is anyone here", mine for "is that a phone".</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>How it works</h2>
+    <div class="content">
+      <div class="pipeline">webcam → mirrored square from the middle of the frame (what Teachable Machine trained on)<br>→ my model: working / phone / away &nbsp;+&nbsp; bodyPose: is anyone here?<br>→ ignore guesses under 70% confidence<br>→ a label has to hold for a few seconds before anything happens<br>→ start · pause · resume · "phone down?"</div>
+      <table>
+        <tr><th>What I do</th><th>Holds for</th><th>What lock in does</th></tr>
+        <tr><td>Sit down and work</td><td>5 s</td><td>"starting in 5…" (cancelable), then focus</td></tr>
+        <tr><td>Walk away</td><td>10 s</td><td>Pauses and takes those 10 s back. bodyPose has to miss me for 1.5 s before it counts as "nobody here".</td></tr>
+        <tr><td>Come back</td><td>2 s</td><td>Resumes</td></tr>
+        <tr><td>Hold my phone</td><td>20 s</td><td>Ring pulses yellow, one notification, and the menu bar ring pulses. Misreads under 4 s don't restart the count. Never pauses.</td></tr>
+        <tr><td>Put the phone down</td><td>6 s with no phone</td><td>Back to normal</td></tr>
+        <tr><td>It paused but I was here</td><td>one tap</td><td>"I was here": resumes and gives every second back. Each tap is counted.</td></tr>
+      </table>
+      <p>The lock in menu bar app owns the timer. When a focus round starts it opens the sketch in watch mode, and the camera is on only during focus. Frames never leave the Mac.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Inspiration</h2>
+    <div class="content">
+      <ul>
+        <li><b>My own week.</b> Sessions that said I focused for 50 minutes when I know I didn't.</li>
+        <li><b>Calm technology.</b> Mark Weiser and John Seely Brown, "Designing Calm Technology" (1995): technology that stays in the periphery and only moves to the center when needed.</li>
+        <li><b>iPhone's attention-aware features.</b> Machine learning you never configure, which only removes steps.</li>
+        <li><b>Focus apps like Forest,</b> as the opposite: they make you press a button and punish you for leaving.</li>
+        <li><b>Teachable Machine (week 2),</b> which makes retraining on your own desk a few minutes of work.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Process</h2>
+    <div class="content">
+      <p><b>Four models.</b> Each one came from a place where the last one broke.</p>
+      <table>
+        <tr><th>Model</th><th>Trained</th><th>What changed</th></tr>
+        <tr><td>1 · first desk</td><td>11/19</td><td>My desk, usual light. In a new room an empty frame read "phone 100%", and me sitting with no phone read phone 95–100% on 5 of 5 frames.</td></tr>
+        <tr><td>2 · classroom</td><td>11/20</td><td>Retrained in the classroom. The same frames read working 100%.</td></tr>
+        <tr><td>3</td><td>11/20</td><td>Fixed chin-on-hand (phone 59% → working 100% on test frames). The sketch's default.</td></tr>
+        <tr><td>4</td><td>to fill</td><td>A different setting and a different sweater, but still a black sweater, like every model before it.</td></tr>
+      </table>
+      <p><b>Recording myself.</b> I added a test log (<code>?trace=1</code>) that writes down every half second what each model saw and what the timer did. Three recordings became three fixes:</p>
+      <ul>
+        <li>An empty room the model had never seen read "phone 100%". Teachable Machine has to pick one of its three classes, and nothing in training looked like that room. Now bodyPose decides whether anyone is here, and my model only decides working vs phone. A confident "phone" still wins, because a phone held up can hide my face from bodyPose.</li>
+        <li>While I was still scrolling, the model read "working" for about two seconds and "phone down?" cleared. Now misreads under 4 seconds don't restart the 20 second count, and the alert clears only after 6 seconds with no phone at all.</li>
+        <li>My model said "working" on every frame, but bodyPose missed me for single frames, which flipped the guess to "away 100%" and kept restarting the start countdown. Now "nobody here" needs 1.5 seconds of misses.</li>
+      </ul>
+      <p><b>The model was seeing a different picture.</b> Teachable Machine's webcam records a mirrored square from the middle of the frame. When I read ml5 1.4.0's source, its image classifier ignored the <code>flipped</code> option for Teachable Machine models and stretched the whole 4:3 frame into a square, so every model was judging a squashed, un-mirrored version of me. The sketch now cuts the same mirrored square Teachable Machine trained on and runs the model itself. <code>?raw=1</code> keeps the old way, so I can compare the two.</p>
+      <p><b>The background tab.</b> "phone down?" matters most when I'm in another tab. But ml5's <code>classify()</code> waits for an animation frame before every guess, and Chrome gives a hidden tab none. In a browser test with animation frames stopped, the old path answered 0 times in 6 seconds and the new one kept guessing.</p>
+      <p><b>Nobody in frame.</b> I checked what each model says when there's nothing to see: a blank wall, a dark room, a bright frame. None of them says "away". Model 2 says working 89–93%, model 1 says 71–90% and model 3 says 57–61%. On its own, my model can't spot an empty desk, so bodyPose has to stay.</p>
+      <p><b>Easy:</b> training in Teachable Machine, the timer rules (pure JavaScript with 13 tests, no camera needed) and the yellow pulse. <b>Hard:</b> anything that changes the picture: a new room, new light, my phone against a dark sweater, and the tab going into the background. The numbers for those don't come from training. They come from recording myself and counting.</p>
+      <div class="tofill"><b>To fill (model 4):</b> the compare page table for models 3 and 4 on the same photos and live: right, unsure, confident-and-wrong, phone read as working. Also the black sweater vs light top test. Which model the demo uses, and why.</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Audience and context</h2>
+    <div class="content">
+      <p>First, me, as an audience of one, at my desk and in the places I actually study. Then three friends who already study with me on lock in share codes. The goal is that people barely interact with it. You sit down, and it's already counting. The only taps are corrections: canceling a start you didn't want, or "I was here" after a wrong pause. I count every correction, because a correction is a step the ML added back.</p>
+      <p>It knows if you're here, not if you're on task. A camera can't see your screen, and I'd rather say that plainly than pretend. It's a camera pointed at you while you study, so it's on only during focus rounds, frames never leave the computer, and the training photos are saved only when I turn on <code>?collect=</code>.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>User testing</h2>
+    <div class="content">
+      <p>Play testing is Friday, December 4: a round robin, 5–7 minutes per person, no explaining until they've tried it. What I'll write down for each person: did it start without them pressing anything, how many corrections they made, every wrong pause or wrong "phone down?", and whether the camera felt like help or like being watched.</p>
+      <div class="tofill"><b>To fill (after 12/4):</b> what play testers did and said, the counts, and what I changed because of it. Then the same for the three friends.</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Source code</h2>
+    <div class="content">
+      <p>All on <a href="https://github.com/wl3512-lab/ml-arts-lock-in-handsfree">GitHub</a>:</p>
+      <ul>
+        <li><code>sketch/handsfree-logic.js</code>: the timer rules, kept free of p5 and ml5 so they can be tested</li>
+        <li><code>sketch/tm-input.js</code>: turns a webcam frame into the square the model trained on, and runs it</li>
+        <li><code>sketch/sketch.js</code>: p5 + ml5, the ring, bodyPose, the yellow pulse, watch / trace / collect modes</li>
+        <li><code>sketch/compare/</code>: the model compare page</li>
+        <li><code>sketch/model*/</code>: the Teachable Machine models</li>
+        <li><code>tests/</code>: 13 timer rules, a check of every model folder, and a browser test with a fake camera</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Code references</h2>
+    <div class="content">
+      <ul>
+        <li>Class example "Image Classification with Teachable Machine and ml5.js" (starting point for the sketch)</li>
+        <li><a href="https://teachablemachine.withgoogle.com/">Teachable Machine</a> for training, and ml5.js 1.4.0 <code>bodyPose</code> (MoveNet) for presence</li>
+        <li>ml5.js 1.4.0 source, <code>src/ImageClassifier/index.js</code> and <code>src/utils/imageUtilities.js</code>, where I found the stretch and animation frame behavior (cited in <code>tm-input.js</code>)</li>
+        <li>p5.js 1.11.10, TensorFlow.js (bundled in ml5)</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Next steps</h2>
+    <div class="content">
+      <ul>
+        <li>Retrain with photos in clothes that aren't black, if the sweater test shows the model leaning on them.</li>
+        <li>Let "I was here" teach it: save that frame as a "working" example so the same mistake gets less likely.</li>
+        <li>Shared sessions: in a share code session, track only my away time and never move the shared clock.</li>
+        <li>Try a classifier on bodyPose keypoints instead of the whole image, so a new room matters less.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <p>AI assistance: I built the sketch, its tests, the compare page and this page with Claude (Anthropic), including reading ml5's source to find the input and background-tab problems. Training the models, recording myself and living with it are mine.</p>
+  </footer>
+</main>
+</body>
+</html>

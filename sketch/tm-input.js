@@ -9,6 +9,15 @@
 //
 // So the sketch runs the model itself: draw the same square TM saw, then
 // predict with ml5's own TensorFlow.js (ml5.tf). No animation frame needed.
+//
+// References:
+// - ml5.js 1.4.0, src/ImageClassifier/index.js, classifyInternal(): for a model
+//   URL it calls imgToTensor(input, [224, 224]) and awaits tf.nextFrame().
+// - ml5.js 1.4.0, src/utils/imageUtilities.js, imgToTensor(): resizeBilinear to
+//   224×224 first, then the center crop (a no-op by then), then / 127 - 1.
+// - TensorFlow.js tfjs-core, browser_util.js: nextFrame() is requestAnimationFrame.
+// - Teachable Machine image library (teachablemachine-community, libraries/image):
+//   the webcam draws a flipped, center-cropped square; pixels / 127 - 1.
 (function (root) {
   const SIZE = 224;
 

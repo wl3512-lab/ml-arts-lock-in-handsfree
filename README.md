@@ -3,6 +3,8 @@
 ML for the Arts final (Lucy Liu, Fall 2026). A study timer that starts when you sit down, pauses when you walk away, and dims when you pick up your phone, using a Teachable Machine image model trained on your own desk.
 
 - `index.html`: proposal post
+- `final/`: final documentation post (draft; due 12/15)
+- `FINAL.md`: what's left and when (play testing 12/4, final 12/11, documentation 12/15)
 - `slides/`: proposal slides (arrow keys)
 - `sketch/`: p5.js 1.11.10 + ml5 1.4.0 code sketch; `handsfree-logic.js` holds the rules, `tm-input.js` turns a webcam frame into desk-model input
   - URL flags: `?watch=1` (opened by the lock in app), `?trace=1` (test log), `?collect=working|phone|away` (training photos), `?raw=1` (old ml5 input, for comparison)
