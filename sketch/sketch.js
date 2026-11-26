@@ -3,7 +3,7 @@
 // handsfree-logic.js turns its guesses into start / pause / dim.
 // Based on the class example "Image Classification with Teachable Machine and ml5.js".
 
-let video, classifier, bodyPose, hf;
+let video, deskModel, bodyPose, hf;
 // Presence check: a pretrained bodyPose (MoveNet) decides "is anyone here?",
 // which works in any room. The desk model only decides working vs phone.
 // Without it, an empty room the desk model never saw can read as "phone 100%".
@@ -39,10 +39,13 @@ let lastTrace = 0, traceBuf = [], lastEventCount = 0;
 // ready to upload into that Teachable Machine class.
 const COLLECT = new URLSearchParams(location.search).get('collect');
 let lastShot = 0, shots = 0;
-const shotCanvas = document.createElement('canvas');
-shotCanvas.width = shotCanvas.height = 224;
+// The desk model sees what Teachable Machine trained on: a mirrored center
+// square (see tm-input.js). ?raw=1 feeds it the old ml5 way (whole frame,
+// stretched, not mirrored) so the two can be compared in a ?trace=1 log.
+const RAW = new URLSearchParams(location.search).has('raw');
+const tmCanvas = TMInput.makeCanvas();
 let phoneWas = false, lastBeat = 0;
-let busyTM = false, busyPose = false, poseReady = false, lastUpdate = 0;
+let lastGuessEnd = -Infinity, busyPose = false, poseReady = false, lastUpdate = 0;
 
 function setup() {
   createCanvas(windowWidth, windowHeight).parent(document.querySelector('main'));
@@ -85,9 +88,11 @@ function tick() {
     if (!cameraOn) { phoneSignals(t0); return; }
   }
   if (video && video.elt && video.elt.paused) video.elt.play().catch(() => {});
-  if (mode === 'model' && classifier && !busyTM) {
-    busyTM = true;
-    classifier.classify(video, (r) => { busyTM = false; gotResult(r); });
+  // a guess takes ~15 ms on a laptop GPU but can take longer than a tick on a slow
+  // machine; skipping keeps queued ticks from piling up and freezing the page
+  if (mode === 'model' && deskModel && video.elt.videoWidth && performance.now() - lastGuessEnd >= 180) {
+    classifyDesk();
+    lastGuessEnd = performance.now();
   }
   if (presenceCheck && poseReady && !busyPose) {
     busyPose = true;
@@ -103,12 +108,8 @@ function tick() {
 function collectTick(t) {
   if (t - lastShot < 3 || !video || !video.elt.videoWidth) return;
   lastShot = t;
-  const v = video.elt, side = Math.min(v.videoWidth, v.videoHeight);
-  const g = shotCanvas.getContext('2d');
-  g.save(); g.translate(224, 0); g.scale(-1, 1);   // mirrored, like the model sees it
-  g.drawImage(v, (v.videoWidth - side) / 2, (v.videoHeight - side) / 2, side, side, 0, 0, 224, 224);
-  g.restore();
-  fetch(`http://127.0.0.1:8779/frame?label=${encodeURIComponent(COLLECT)}`, { method: 'POST', body: shotCanvas.toDataURL('image/jpeg', 0.9) })
+  const shot = TMInput.drawMatched(video.elt, tmCanvas);   // mirrored square, like the model sees it
+  fetch(`http://127.0.0.1:8779/frame?label=${encodeURIComponent(COLLECT)}`, { method: 'POST', body: shot.toDataURL('image/jpeg', 0.9) })
     .then(() => { shots++; status(`Collecting "${COLLECT}" photos: ${shots} saved to Pictures/lock in training/${COLLECT}`); })
     .catch(() => status('Collect mode needs the lock in app open.'));
 }
@@ -119,7 +120,7 @@ function traceTick(t) {
   const ev = snap.events.length ? snap.events[snap.events.length - 1] : null;
   traceBuf.push(JSON.stringify({
     t: Math.round(t * 10) / 10, clock: new Date().toLocaleTimeString(),
-    tm: tmGuess ? `${tmGuess.raw} ${Math.round(tmGuess.confidence * 100)}` : null,
+    tm: tmGuess ? `${tmGuess.raw} ${Math.round(tmGuess.confidence * 100)}` : null, input: RAW ? 'raw' : 'tm',
     pose: Math.round(person.score * 100), here: person.here,
     sees: `${guess.label} ${Math.round(guess.confidence * 100)} ${guess.by || ''}`.trim(),
     state: snap.state, phone: !!snap.phoneAlert, last: ev ? `${fmt(ev.t)} ${ev.msg}` : null,
@@ -213,7 +214,7 @@ function reset() {
   snap = hf.snapshot();
 }
 
-function loadDeskModel() {
+async function loadDeskModel() {
   let url = select('#modelUrl').value().trim();
   if (!url) { status('Paste your Teachable Machine model link first.'); return; }
   if (url.endsWith('model.json')) url = url.slice(0, -'model.json'.length);
@@ -221,15 +222,20 @@ function loadDeskModel() {
   url = new URL(url, location.href).href;
   status('Loading model…');
   try { localStorage.setItem('handsfree-model', url); } catch (e) { /* private window */ }
-  classifier = ml5.imageClassifier(url + 'model.json', { flipped: true }, () => {
+  try {
+    deskModel = await TMInput.loadModel(ml5.tf, url);
     mode = 'model';
-    status('Model loaded. It is watching your desk.');
-  });
+    const when = deskModel.meta.timeStamp ? ` (trained ${new Date(deskModel.meta.timeStamp).toLocaleDateString()})` : '';
+    status(`Model loaded${when}. It is watching your desk${RAW ? ' (raw ml5 input)' : ''}.`);
+  } catch (e) {
+    status(`Couldn't load that model: ${e.message}`);
+  }
 }
 
-function gotResult(results) {
-  if (!results || !results.length) return;
-  const top = results[0];
+// Runs every tick, also in a background tab (no animation frame involved).
+function classifyDesk() {
+  const frame = RAW ? TMInput.drawMl5Default(video.elt, tmCanvas) : TMInput.drawMatched(video.elt, tmCanvas);
+  const top = TMInput.predict(ml5.tf, deskModel, frame);
   tmGuess = { raw: top.label, label: HandsFree.normalizeLabel(top.label), confidence: top.confidence };
   combine();
 }

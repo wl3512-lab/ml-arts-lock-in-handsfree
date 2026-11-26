@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>model compare · lock in, hands-free</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/ml5@1.4.0/dist/ml5.min.js"></script>
+  <style>
+    :root{--bg:#0b0e22;--panel:#151a3a;--line:#ffffff26;--ink:#eef1ff;--soft:#b9c0e6;--focus:#9fd3ff;--mint:#a6f0cf;--wait:#c9b8ff;--gold:#ffd98a;--bad:#ffa0a0}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,sans-serif}
+    main{max-width:1180px;margin:auto;padding:28px 20px 60px}
+    h1,h2,.eyebrow{font-family:"Silkscreen",ui-monospace,monospace;font-weight:400}
+    .eyebrow{font-size:11px;letter-spacing:1px;color:var(--soft)}
+    h1{font-size:30px;line-height:1.05;margin:4px 0 10px;color:var(--focus)}
+    h2{font-size:13px;letter-spacing:.5px;color:var(--wait);margin:0 0 10px}
+    p{margin:6px 0;color:var(--soft);max-width:760px}
+    .grid{display:grid;grid-template-columns:330px 1fr;gap:18px;margin-top:18px}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:18px;min-width:0}
+    input[type=text]{font:inherit;width:100%;padding:7px 9px;border-radius:7px;border:1px solid var(--line);background:#ffffff10;color:var(--ink)}
+    .row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;align-items:center}
+    button,label.btn{font:inherit;cursor:pointer;border:1px solid #ffffff40;border-radius:7px;padding:7px 11px;color:inherit;background:#ffffff12}
+    button:hover,label.btn:hover{background:#ffffff26}
+    button.primary,label.primary{background:var(--focus);color:#0b0e22;border-color:var(--focus)}
+    button.on{background:var(--gold);color:#0b0e22;border-color:var(--gold)}
+    button:disabled{opacity:.4;cursor:default}
+    .check{display:flex;gap:8px;align-items:flex-start;margin:4px 0;cursor:pointer}
+    .check input{margin-top:3px}
+    .small{font-size:12px}
+    kbd{font:11px ui-monospace,monospace;border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+    #status{color:var(--ink);min-height:1.5em}
+    .sees{display:flex;gap:12px;flex-wrap:wrap}
+    .sees figure{margin:0}
+    .sees canvas,.sees video{width:150px;height:150px;border-radius:8px;border:1px solid var(--line);display:block;object-fit:cover;background:#000}
+    .sees video{transform:scaleX(-1)}
+    figcaption{font-size:11px;color:var(--soft);margin-top:4px;max-width:150px}
+    table{border-collapse:collapse;width:100%;font:12px/1.4 ui-monospace,monospace}
+    td,th{padding:5px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+    th{color:var(--soft);font-weight:400}
+    td:first-child,th:first-child{text-align:left;white-space:normal}
+    .good{color:var(--mint)} .bad{color:var(--bad)} .mid{color:var(--gold)}
+    .cm td.diag{color:var(--mint)}
+    .results{overflow-x:auto}
+    .model-block{margin:14px 0 22px}
+    .model-block h3{font:13px/1.3 system-ui,sans-serif;margin:0 0 6px}
+    .cms{display:flex;flex-wrap:wrap;gap:18px}
+    .cms table{width:auto}
+    #misses{display:flex;flex-wrap:wrap;gap:8px}
+    #misses figure{margin:0;width:112px}
+    #misses img{width:112px;height:112px;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:block}
+    #live-now{font:12px/1.6 ui-monospace,monospace;color:var(--soft);white-space:pre-wrap;min-height:5em}
+    @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">lock in, hands-free · testing</div>
+  <h1>model compare</h1>
+  <p>Every desk model, on the same pictures. Use the photos <code>?collect=</code> saved (or Teachable Machine's downloaded samples), or act it out live while holding a key that says what you're really doing. Everything runs in this page: no photo or frame is uploaded or saved. The CSV holds only labels and numbers.</p>
+
+  <div class="grid">
+    <div>
+      <section class="card">
+        <h2>1 · models</h2>
+        <div id="models"></div>
+        <p class="small">Add one by its Teachable Machine share link or folder:</p>
+        <div class="row"><input type="text" id="extraUrl" placeholder="https://teachablemachine.withgoogle.com/models/…/"></div>
+        <div class="row"><button id="addModel">Add model</button></div>
+      </section>
+
+      <section class="card">
+        <h2>2a · your photos</h2>
+        <p class="small">Pick the folder that has <b>working</b>, <b>phone</b> and <b>away</b> folders inside (like <code>Pictures/lock in training</code>). The folder name is the right answer.</p>
+        <div class="row"><label class="btn primary" for="folder">Choose folder…</label>
+          <input type="file" id="folder" webkitdirectory directory multiple hidden></div>
+      </section>
+
+      <section class="card">
+        <h2>2b · live</h2>
+        <p class="small">Start the camera, then hold a key while you act it out: <kbd>1</kbd> working, <kbd>2</kbd> phone, <kbd>3</kbd> away. Nothing is counted while no key is held. Or click a button to keep one on.</p>
+        <div class="row"><button class="primary" id="cam">Start camera</button></div>
+        <div class="row"><button data-truth="working">1 working</button><button data-truth="phone">2 phone</button><button data-truth="away">3 away</button></div>
+        <label class="small check"><input type="checkbox" id="both" checked><span>also test the old ml5 input (whole frame, stretched, not mirrored)</span></label>
+        <label class="small check"><input type="checkbox" id="pose" checked><span>also test pretrained bodyPose on away vs here</span></label>
+        <div id="live-now"></div>
+      </section>
+    </div>
+
+    <div>
+      <section class="card">
+        <h2>what the model sees</h2>
+        <div class="sees">
+          <figure><video id="video" playsinline muted></video><figcaption>camera (shown mirrored)</figcaption></figure>
+          <figure><canvas id="seeMatched" width="224" height="224"></canvas><figcaption>Teachable Machine input: mirrored center square (what it trained on)</figcaption></figure>
+          <figure><canvas id="seeRaw" width="224" height="224"></canvas><figcaption>old ml5 input: whole frame stretched, not mirrored</figcaption></figure>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>results</h2>
+        <p id="status">Load models, then test with photos or live.</p>
+        <div class="row"><button id="csv" disabled>Download CSV</button><button id="clear">Clear results</button></div>
+        <div class="results" id="results"></div>
+      </section>
+
+      <section class="card">
+        <h2>confident mistakes (photos)</h2>
+        <p class="small">Photos the chosen model got wrong at 70% or more (the ones that would start, pause or dim). These are the ones worth retraining with.</p>
+        <div class="row"><select id="missModel"></select></div>
+        <div id="misses"></div>
+      </section>
+    </div>
+  </div>
+</main>
+<script src="../handsfree-logic.js?v=11"></script>
+<script src="../tm-input.js?v=11"></script>
+<script src="compare.js?v=1"></script>
+</body>
+</html>

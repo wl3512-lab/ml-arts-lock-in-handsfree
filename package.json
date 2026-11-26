@@ -1,0 +1,14 @@
+{
+  "name": "ml-arts-lock-in-handsfree",
+  "private": true,
+  "description": "lock in, hands-free: ML for the Arts final (sketch, tests)",
+  "scripts": {
+    "test": "node tests/handsfree-logic.test.cjs && node tests/models.test.cjs",
+    "test:browser": "node tests/browser.test.cjs"
+  },
+  "devDependencies": {
+    "@tensorflow/tfjs": "4.22.0",
+    "ml5": "1.4.0",
+    "p5": "1.11.10"
+  }
+}
