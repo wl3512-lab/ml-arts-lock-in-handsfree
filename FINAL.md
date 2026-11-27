@@ -3,18 +3,19 @@
 | When | What | Status |
 |---|---|---|
 | 11/13 | Proposal post + slides | done |
-| now → 12/3 | Add model 4, test it against model 3 (compare page), friends use it | in progress |
+| 11/27 | Model 4 (hair in a bonnet) added as the sketch's default; model 3 kept in `sketch/model-v3/` | done |
+| now → 12/3 | Test model 4 against model 3 (compare page), friends use it | in progress |
 | **Fri 12/4** | Play testing, round robin, 5–7 min each, no explaining until they've tried it | |
 | **Fri 12/11** | Final presentation: ~10 min live demo, slides optional | |
 | **Tue 12/15** | Documentation post due, linked on the Final-Presentations wiki page | draft: `final/index.html` |
 
 ## 1 · Model 4
 
-1. Put the model files in `sketch/model/` (`model.json`, `metadata.json`, `weights.bin`); move model 3 to `sketch/model-v3/`.
-2. `npm install && npm test`: checks it loads and its classes map to working / phone / away.
+1. ~~Put the model files in `sketch/model/`; move model 3 to `sketch/model-v3/`.~~ Done 11/27.
+2. ~~`npm install && npm test`~~ Done: it loads, and study / phone / away map to working / phone / away.
 3. Open `sketch/compare/` at your desk:
    - **Photos:** Choose folder → `Pictures/lock in training` (the `?collect=` photos). Every model is scored on the same photos.
-   - **Live:** Start camera, hold <kbd>1</kbd> working, <kbd>2</kbd> phone, <kbd>3</kbd> away while you act it out, about 30 s each. Do it once in the black sweater and once in a light top.
+   - **Live:** Start camera, hold <kbd>1</kbd> working, <kbd>2</kbd> phone, <kbd>3</kbd> away while you act it out, about 30 s each. Do it in what model 4 saw (hair up in the bonnet, black sweater), then with your hair down, then in a light top.
    - Download CSV. The numbers go in the Process section.
 4. Keep whichever model has fewer **confident & wrong**, especially phone read as working. That one stays in `sketch/model/`.
 

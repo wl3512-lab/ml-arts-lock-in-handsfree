@@ -4,7 +4,7 @@
 // Every model that ships with the sketch, newest first. The page reads each one's
 // training date from its metadata.json.
 const SHIPPED = [
-  { url: '../model/', name: 'model/ (the sketch loads this one)' },
+  { url: '../model/', name: 'model 4 · hair in a bonnet (the sketch loads this one)' },
   { url: '../model-v3/', name: 'model 3' },
   { url: '../model-classroom/', name: 'model 2 · classroom' },
   { url: '../model-desk/', name: 'model 1 · first desk' },

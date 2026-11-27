@@ -111,8 +111,8 @@
         <tr><th>Model</th><th>Trained</th><th>What changed</th></tr>
         <tr><td>1 · first desk</td><td>11/19</td><td>My desk, usual light. In a new room an empty frame read "phone 100%", and me sitting with no phone read phone 95–100% on 5 of 5 frames.</td></tr>
         <tr><td>2 · classroom</td><td>11/20</td><td>Retrained in the classroom. The same frames read working 100%.</td></tr>
-        <tr><td>3</td><td>11/20</td><td>Fixed chin-on-hand (phone 59% → working 100% on test frames). The sketch's default.</td></tr>
-        <tr><td>4</td><td>to fill</td><td>A different setting and a different sweater, but still a black sweater, like every model before it.</td></tr>
+        <tr><td>3</td><td>11/20</td><td>Fixed chin-on-hand (phone 59% → working 100% on test frames).</td></tr>
+        <tr><td>4</td><td>11/27</td><td>My hair up in a bonnet. Its classes are study / phone / away (the sketch reads "study" as working). The sketch's default.</td></tr>
       </table>
       <p><b>Recording myself.</b> I added a test log (<code>?trace=1</code>) that writes down every half second what each model saw and what the timer did. Three recordings became three fixes:</p>
       <ul>
@@ -122,9 +122,9 @@
       </ul>
       <p><b>The model was seeing a different picture.</b> Teachable Machine's webcam records a mirrored square from the middle of the frame. When I read ml5 1.4.0's source, its image classifier ignored the <code>flipped</code> option for Teachable Machine models and stretched the whole 4:3 frame into a square, so every model was judging a squashed, un-mirrored version of me. The sketch now cuts the same mirrored square Teachable Machine trained on and runs the model itself. <code>?raw=1</code> keeps the old way, so I can compare the two.</p>
       <p><b>The background tab.</b> "phone down?" matters most when I'm in another tab. But ml5's <code>classify()</code> waits for an animation frame before every guess, and Chrome gives a hidden tab none. In a browser test with animation frames stopped, the old path answered 0 times in 6 seconds and the new one kept guessing.</p>
-      <p><b>Nobody in frame.</b> I checked what each model says when there's nothing to see: a blank wall, a dark room, a bright frame. None of them says "away". Model 2 says working 89–93%, model 1 says 71–90% and model 3 says 57–61%. On its own, my model can't spot an empty desk, so bodyPose has to stay.</p>
+      <p><b>Nobody in frame.</b> I checked what each model says when there's nothing to see: a blank wall, a dark room, a bright frame. None of them says "away". Model 4 says study 75–93%, model 2 says working 89–93%, model 1 says 71–90% and model 3 says 57–61%. On its own, my model can't spot an empty desk, so bodyPose has to stay.</p>
       <p><b>Easy:</b> training in Teachable Machine, the timer rules (pure JavaScript with 13 tests, no camera needed) and the yellow pulse. <b>Hard:</b> anything that changes the picture: a new room, new light, my phone against a dark sweater, and the tab going into the background. The numbers for those don't come from training. They come from recording myself and counting.</p>
-      <div class="tofill"><b>To fill (model 4):</b> the compare page table for models 3 and 4 on the same photos and live: right, unsure, confident-and-wrong, phone read as working. Also the black sweater vs light top test. Which model the demo uses, and why.</div>
+      <div class="tofill"><b>To fill (model 4):</b> the compare page table for models 3 and 4 on the same photos and live: right, unsure, confident-and-wrong, phone read as working. Also the appearance tests: hair up vs down, black sweater vs a light top. Which model the demo uses, and why.</div>
     </div>
   </section>
 
@@ -175,7 +175,7 @@
     <h2>Next steps</h2>
     <div class="content">
       <ul>
-        <li>Retrain with photos in clothes that aren't black, if the sweater test shows the model leaning on them.</li>
+        <li>Retrain with photos in clothes that aren't black and with my hair down, if the appearance tests show the model leaning on them.</li>
         <li>Let "I was here" teach it: save that frame as a "working" example so the same mistake gets less likely.</li>
         <li>Shared sessions: in a share code session, track only my away time and never move the shared clock.</li>
         <li>Try a classifier on bodyPose keypoints instead of the whole image, so a new room matters less.</li>
